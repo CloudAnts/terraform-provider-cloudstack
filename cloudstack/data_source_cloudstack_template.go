@@ -102,7 +102,10 @@ func dataSourceCloudstackTemplateRead(d *schema.ResourceData, meta interface{}) 
 	filters := d.Get("filter")
 	var templates []*cloudstack.Template
 
+	log.Printf("[DEBUG] Templates found: %d\n", len(csTemplates.Templates))
+
 	for _, t := range csTemplates.Templates {
+		log.Printf("[DEBUG] Checking template %s [id: %s]\n", t.Name, t.Id)
 		match, err := applyFilters(t, filters.(*schema.Set))
 		if err != nil {
 			return err
