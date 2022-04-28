@@ -58,7 +58,7 @@ signs:
 release:
   disable: false
   github:
-      owner: cloudstack
+      owner: cloudants
       name: terraform-provider-cloudstack
 changelog:
   skip: true
