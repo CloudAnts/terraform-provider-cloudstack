@@ -73,6 +73,13 @@ func resourceCloudStackInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"ip6_address": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"template": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -246,6 +253,10 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetIpaddress(ipaddress.(string))
 	}
 
+	if ip6address, ok := d.GetOk("ip6_address"); ok {
+		p.SetIpaddress(ip6address.(string))
+	}
+
 	// If there is a group supplied, add it to the parameter struct
 	if group, ok := d.GetOk("group"); ok {
 		p.SetGroup(group.(string))
@@ -355,6 +366,7 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	if len(vm.Nic) > 0 {
 		d.Set("network_id", vm.Nic[0].Networkid)
 		d.Set("ip_address", vm.Nic[0].Ipaddress)
+		d.Set("ip6_address", vm.Nic[0].Ip6address)
 	}
 
 	// Create a new param struct.
