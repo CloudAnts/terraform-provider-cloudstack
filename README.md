@@ -1,21 +1,28 @@
 CloudStack Terraform Provider
 =============================
 
+A notice from CloudAnts
+-----------------------
+
+We, CloudAnts, are a managed hosting provider. We've forked the original repository to fix a number of bugs that have
+been impeding our progress, and we've added a few missing features. At the moment, we have no intention of pushing back
+changes to the original repository (through pull requests), but feel free to use this provider as you wish.
+
 Requirements
 ------------
 
--	[Terraform](https://www.terraform.io/downloads.html) 1.0.x
--	[Go](https://golang.org/doc/install) 1.16+ (to build the provider plugin)
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.1.x
+- [Go](https://golang.org/doc/install) >= 1.16+ (to build the provider plugin)
 
-Using the Provider from Terrafrom registry
+Using the Provider from Terraform registry
 ------------------------------------------
 To install the CloudStack provider, copy and paste the below code into your Terraform configuration. Then, run terraform init.
 ```sh
 terraform {
   required_providers {
     cloudstack = {
-      source = "cloudstack/cloudstack"
-      version = "0.4.0"
+      source = "cloudants/cloudstack"
+      version = "1.0.0"
     }
   }
 }
@@ -24,33 +31,43 @@ provider "cloudstack" {
   # Configuration options
 }
 ```
-For more details on how to install and use the provider, visit https://registry.terraform.io/providers/cloudstack/cloudstack/latest/docs
+Check the [Terraform documentation](https://registry.terraform.io/providers/cloudants/cloudstack/latest/docs) for more
+details on how to install and use the provider.
 
 Developing the Provider
----------------------------
+-----------------------
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.16+ is *required*). You'll also need to correctly setup a [GOPATH](http://golang.org/doc/code.html#GOPATH), as well as adding `$GOPATH/bin` to your `$PATH`.
+If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version
+1.16+ is *required*). You'll also need to correctly set up a
+[GOPATH](http://golang.org/doc/code.html#GOPATH), as well as adding `$GOPATH/bin` to your `$PATH`.
 
-Clone repository to: `$GOPATH/src/github.com/apache/cloudstack-terraform-provider`
+Clone repository to: `$GOPATH/src/github.com/apache/terraform-provider-cloudstack`
 
 ```sh
-$ mkdir -p $GOPATH/src/github.com/apache; cd $GOPATH/src/github.com/apache
-$ git clone git@github.com:apache/cloudstack-terraform-provider
+$ mkdir -p $GOPATH/src/github.com/cloudants; cd $GOPATH/src/github.com/cloudants
+$ git clone git@github.com:cloudants/terraform-provider-cloudstack
 ```
 
-To compile the provider, run `make build`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
-
-Enter the provider directory and build the provider
+To compile the provider, run `make build`. This will build the provider and put the provider binary in the
+`$GOPATH/bin` directory. Enter the provider directory and build the provider:
 
 ```sh
-$ cd $GOPATH/src/github.com/apache/cloudstack-terraform-provider
+$ cd $GOPATH/src/github.com/cloudants/terraform-provider-cloudstack
 $ make build
 $ ls $GOPATH/bin/terraform-provider-cloudstack
 ```
+
 Once the build is ready, you have to copy the binary into Terraform locally (version appended).
 On Linux this path is at ~/.terraform.d/plugins, and on Windows at %APPDATA%\terraform.d\plugins.
+
 ```sh
-$ ls ~/.terraform.d/plugins/registry.terraform.io/cloudstack/cloudstack/0.4.0/linux_amd64/terraform-provider-cloudstack_v0.4.0
+$ ls ~/.terraform.d/plugins/registry.terraform.io/cloudants/cloudstack/1.0.0/linux_amd64/terraform-provider-cloudstack_v1.0.0
+```
+
+You can also symlink the file locally to make testing a little easier:
+
+```sh
+$ ln -s $GOPATH/bin/terraform-provider-cloudstack ~/.terraform.d/plugins/registry.terraform.io/cloudants/cloudstack/1.0.0/linux_amd64/terraform-provider-cloudstack_v1.0.0
 ```
 
 Testing the Provider
@@ -62,30 +79,49 @@ In order to test the provider, you can simply run `make test`.
 $ make test
 ```
 
-In order to run the full suite of Acceptance tests you will need to run the CloudStack Simulator. Please follow these steps to prepare an environment for running the Acceptance tests:
+In order to run the full suite of Acceptance tests you will need to run the CloudStack Simulator. Please note that the
+official simulator is broken at this moment. The Docker image supplied by `ustcweizhou/cloudstack-simulator` seems a
+good replacement, however the datacenter configuration created in the image doesn't seem to work with CloudStack
+anymore.
 
 ```sh
-$ docker pull cloudstack/simulator
-$ docker run --name simulator -p 8080:5050 -d cloudstack/simulator
+$ docker pull ustcweizhou/cloudstack-simulator
+$ docker run --name simulator -p 8080:5050 -d ustcweizhou/cloudstack-simulator
 ```
 
-When Docker started the container you can go to http://localhost:8080/client and login to the CloudStack UI as user `admin` with password `password`. It can take a few minutes for the container is fully ready, so you probably need to wait and refresh the page for a few minutes before the login page is shown.
+You can also set up a small Docker Compose project:
 
-Once the login page is shown and you can login, you need to provision a simulated data-center:
+```yaml
+version: "3.8"
+services:
+  simulator:
+    container_name: cloudstack-simulator
+    image: ustcweizhou/cloudstack-simulator
+    ports:
+      - "8080:5050"
+```
+
+When the container has started, you can go to http://localhost:8080/client and login to the CloudStack UI as user
+`admin` with password `password`. It can take a few minutes for the container is fully ready, so you probably need to
+wait and refresh the page for a few minutes before the login page is shown.
+
+Once the login page is shown, and you can log in, you need to provision a simulated data-center:
 
 ```sh
 $ docker exec -ti cloudstack python /root/tools/marvin/marvin/deployDataCenter.py -i /root/setup/dev/advanced.cfg
 ```
 
-If you refresh the client or login again, you will now get passed the initial welcome screen and be able to go to your account details and retrieve the API key and secret. Export those together with the URL:
+If you refresh the client or login again, you will now get passed the initial welcome screen and be able to go to your
+account details and retrieve the API key and secret. Export those together with the URL:
 
 ```sh
 $ export CLOUDSTACK_API_URL=http://localhost:8080/client/api
-$ export CLOUDSTACK_API_KEY=r_gszj7e0ttr_C6CP5QU_1IV82EIOtK4o_K9i_AltVztfO68wpXihKs2Tms6tCMDY4HDmbqHc-DtTamG5x112w
-$ export CLOUDSTACK_SECRET_KEY=tsfMDShFe94f4JkJfEh6_tZZ--w5jqEW7vGL2tkZGQgcdbnxNoq9fRmwAtU5MEGGXOrDlNA6tfvGK14fk_MB6w
+$ export CLOUDSTACK_API_KEY=<KEY>
+$ export CLOUDSTACK_SECRET_KEY=<SECRET>
 ```
 
-In order for all the tests to pass, you will need to create a new (empty) project in the UI called `terraform`. When the project is created you can run the Acceptance tests against the CloudStack Simulator by simply runnning:
+In order for all the tests to pass, you will need to create a new (empty) project in the UI called `terraform`.
+When the project is created you can run the Acceptance tests against the CloudStack Simulator by simply running:
 
 ```sh
 $ make testacc
@@ -100,8 +136,8 @@ $ cat provider.tf
 terraform {
   required_providers {
     cloudstack = {
-      source = "cloudstack/cloudstack"
-      version = "0.4.0"
+      source = "cloudants/cloudstack"
+      version = "1.0.0"
     }
   }
 }
@@ -121,12 +157,11 @@ resource "cloudstack_instance" "web" {
   zone             = "2b61ed5d-e8bd-431d-bf52-d127655dffab"
 }
 ```
+
 ## History
 
-This codebase relicensed under APLv2 and donated to the Apache CloudStack
-project under an [IP
-clearance](https://github.com/apache/cloudstack/issues/5159) process and
-imported on 26th July 2021.
+This codebase has not been well maintained through 2022 Q1. As such, CloudAnts has forked the repository and made a few
+necessary fixes in order to ensure that we can keep using CloudStack as intended.
 
 ## License
 
